@@ -1,6 +1,8 @@
 package main
 
+import "github.com/xuelang-algo/blockchain_go/client"
+
 func main() {
-	cli := CLI{}
+	cli := client.CLI{}
 	cli.Run()
 }

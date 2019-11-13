@@ -1,10 +1,12 @@
-package main
+package services
 
 import (
 	"encoding/hex"
 	"log"
 
 	"github.com/boltdb/bolt"
+
+	"github.com/xuelang-algo/blockchain_go/protos"
 )
 
 const utxoBucket = "chainstate"
@@ -26,7 +28,7 @@ func (u UTXOSet) FindSpendableOutputs(pubkeyHash []byte, amount int) (int, map[s
 
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			txID := hex.EncodeToString(k)
-			outs := DeserializeOutputs(v)
+			outs := protos.DeserializeOutputs(v)
 
 			for outIdx, out := range outs.Outputs {
 				if out.IsLockedWithKey(pubkeyHash) && accumulated < amount {
@@ -46,8 +48,8 @@ func (u UTXOSet) FindSpendableOutputs(pubkeyHash []byte, amount int) (int, map[s
 }
 
 // FindUTXO finds UTXO for a public key hash
-func (u UTXOSet) FindUTXO(pubKeyHash []byte) []TXOutput {
-	var UTXOs []TXOutput
+func (u UTXOSet) FindUTXO(pubKeyHash []byte) []protos.TXOutput {
+	var UTXOs []protos.TXOutput
 	db := u.Blockchain.db
 
 	err := db.View(func(tx *bolt.Tx) error {
@@ -55,7 +57,7 @@ func (u UTXOSet) FindUTXO(pubKeyHash []byte) []TXOutput {
 		c := b.Cursor()
 
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			outs := DeserializeOutputs(v)
+			outs := protos.DeserializeOutputs(v)
 
 			for _, out := range outs.Outputs {
 				if out.IsLockedWithKey(pubKeyHash) {
@@ -140,7 +142,7 @@ func (u UTXOSet) Reindex() {
 
 // Update updates the UTXO set with transactions from the Block
 // The Block is considered to be the tip of a blockchain
-func (u UTXOSet) Update(block *Block) {
+func (u UTXOSet) Update(block *protos.Block) {
 	db := u.Blockchain.db
 
 	err := db.Update(func(tx *bolt.Tx) error {
@@ -149,9 +151,9 @@ func (u UTXOSet) Update(block *Block) {
 		for _, tx := range block.Transactions {
 			if tx.IsCoinbase() == false {
 				for _, vin := range tx.Vin {
-					updatedOuts := TXOutputs{}
+					updatedOuts := protos.TXOutputs{}
 					outsBytes := b.Get(vin.Txid)
-					outs := DeserializeOutputs(outsBytes)
+					outs := protos.DeserializeOutputs(outsBytes)
 
 					for outIdx, out := range outs.Outputs {
 						if outIdx != vin.Vout {
@@ -174,7 +176,7 @@ func (u UTXOSet) Update(block *Block) {
 				}
 			}
 
-			newOutputs := TXOutputs{}
+			newOutputs := protos.TXOutputs{}
 			for _, out := range tx.Vout {
 				newOutputs.Outputs = append(newOutputs.Outputs, out)
 			}

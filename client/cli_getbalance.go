@@ -1,20 +1,24 @@
-package main
+package client
 
 import (
 	"fmt"
 	"log"
+
+	"github.com/xuelang-algo/blockchain_go"
+	"github.com/xuelang-algo/blockchain_go/services"
+	"github.com/xuelang-algo/blockchain_go/utils"
 )
 
 func (cli *CLI) getBalance(address, nodeID string) {
-	if !ValidateAddress(address) {
+	if !main.ValidateAddress(address) {
 		log.Panic("ERROR: Address is not valid")
 	}
-	bc := NewBlockchain(nodeID)
-	UTXOSet := UTXOSet{bc}
+	bc := services.NewBlockchain(nodeID)
+	UTXOSet := services.UTXOSet{bc}
 	defer bc.db.Close()
 
 	balance := 0
-	pubKeyHash := Base58Decode([]byte(address))
+	pubKeyHash := utils.Base58Decode([]byte(address))
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
 	UTXOs := UTXOSet.FindUTXO(pubKeyHash)
 

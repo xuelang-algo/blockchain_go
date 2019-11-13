@@ -1,4 +1,4 @@
-package main
+package protos
 
 import (
 	"bytes"
@@ -13,6 +13,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+
+	"github.com/xuelang-algo/blockchain_go"
+	"github.com/xuelang-algo/blockchain_go/services"
 )
 
 const subsidy = 10
@@ -193,11 +196,11 @@ func NewCoinbaseTX(to, data string) *Transaction {
 }
 
 // NewUTXOTransaction creates a new transaction
-func NewUTXOTransaction(wallet *Wallet, to string, amount int, UTXOSet *UTXOSet) *Transaction {
+func NewUTXOTransaction(wallet *main.Wallet, to string, amount int, UTXOSet *services.UTXOSet) *Transaction {
 	var inputs []TXInput
 	var outputs []TXOutput
 
-	pubKeyHash := HashPubKey(wallet.PublicKey)
+	pubKeyHash := main.HashPubKey(wallet.PublicKey)
 	acc, validOutputs := UTXOSet.FindSpendableOutputs(pubKeyHash, amount)
 
 	if acc < amount {

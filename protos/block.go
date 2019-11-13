@@ -1,10 +1,13 @@
-package main
+package protos
 
 import (
 	"bytes"
 	"encoding/gob"
 	"log"
 	"time"
+
+	"github.com/xuelang-algo/blockchain_go"
+	"github.com/xuelang-algo/blockchain_go/utils"
 )
 
 // Block represents a block in the blockchain
@@ -20,7 +23,7 @@ type Block struct {
 // NewBlock creates and returns Block
 func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) *Block {
 	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height}
-	pow := NewProofOfWork(block)
+	pow := main.NewProofOfWork(block)
 	nonce, hash := pow.Run()
 
 	block.Hash = hash[:]
@@ -41,7 +44,7 @@ func (b *Block) HashTransactions() []byte {
 	for _, tx := range b.Transactions {
 		transactions = append(transactions, tx.Serialize())
 	}
-	mTree := NewMerkleTree(transactions)
+	mTree := utils.NewMerkleTree(transactions)
 
 	return mTree.RootNode.Data
 }

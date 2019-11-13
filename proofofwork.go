@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+
+	"github.com/xuelang-algo/blockchain_go/protos"
+	"github.com/xuelang-algo/blockchain_go/utils"
 )
 
 var (
@@ -16,12 +19,12 @@ const targetBits = 16
 
 // ProofOfWork represents a proof-of-work
 type ProofOfWork struct {
-	block  *Block
+	block  *protos.Block
 	target *big.Int
 }
 
 // NewProofOfWork builds and returns a ProofOfWork
-func NewProofOfWork(b *Block) *ProofOfWork {
+func NewProofOfWork(b *protos.Block) *ProofOfWork {
 	target := big.NewInt(1)
 	target.Lsh(target, uint(256-targetBits))
 
@@ -35,9 +38,9 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 		[][]byte{
 			pow.block.PrevBlockHash,
 			pow.block.HashTransactions(),
-			IntToHex(pow.block.Timestamp),
-			IntToHex(int64(targetBits)),
-			IntToHex(int64(nonce)),
+			utils.IntToHex(pow.block.Timestamp),
+			utils.IntToHex(int64(targetBits)),
+			utils.IntToHex(int64(nonce)),
 		},
 		[]byte{},
 	)

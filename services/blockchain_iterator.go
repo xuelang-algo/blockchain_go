@@ -1,9 +1,11 @@
-package main
+package services
 
 import (
 	"log"
 
 	"github.com/boltdb/bolt"
+
+	"github.com/xuelang-algo/blockchain_go/protos"
 )
 
 // BlockchainIterator is used to iterate over blockchain blocks
@@ -13,13 +15,13 @@ type BlockchainIterator struct {
 }
 
 // Next returns next block starting from the tip
-func (i *BlockchainIterator) Next() *Block {
-	var block *Block
+func (i *BlockchainIterator) Next() *protos.Block {
+	var block *protos.Block
 
 	err := i.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		encodedBlock := b.Get(i.currentHash)
-		block = DeserializeBlock(encodedBlock)
+		block = protos.DeserializeBlock(encodedBlock)
 
 		return nil
 	})

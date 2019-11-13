@@ -1,9 +1,11 @@
-package main
+package protos
 
 import (
 	"bytes"
 	"encoding/gob"
 	"log"
+
+	"github.com/xuelang-algo/blockchain_go/utils"
 )
 
 // TXOutput represents a transaction output
@@ -14,7 +16,7 @@ type TXOutput struct {
 
 // Lock signs the output
 func (out *TXOutput) Lock(address []byte) {
-	pubKeyHash := Base58Decode(address)
+	pubKeyHash := utils.Base58Decode(address)
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
 	out.PubKeyHash = pubKeyHash
 }

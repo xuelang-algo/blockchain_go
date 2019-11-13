@@ -1,10 +1,14 @@
-package main
+package client
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/xuelang-algo/blockchain_go/services"
+)
 
 func (cli *CLI) reindexUTXO(nodeID string) {
-	bc := NewBlockchain(nodeID)
-	UTXOSet := UTXOSet{bc}
+	bc := services.NewBlockchain(nodeID)
+	UTXOSet := services.UTXOSet{bc}
 	UTXOSet.Reindex()
 
 	count := UTXOSet.CountTransactions()
