@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option objc_class_prefix = "HLW";
+
+import "google/api/annotations.proto";
+//import "google/protobuf/empty.proto";
+
+package practice;
+
+message Block {
+  int64 timestamp = 1;
+  bytes data = 2;
+  bytes prev_block_hash = 3;
+  bytes hash = 4;
+}
+
+message Blockchain {
+  repeated Block blocks = 1;
+}

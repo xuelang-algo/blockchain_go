@@ -141,7 +141,7 @@ func (cli *CLI) Run() {
 			os.Exit(1)
 		}
 
-		cli.send(*sendFrom, *sendTo, *sendAmount, nodeID, *sendMine)
+		cli.send(*sendFrom, *sendTo, int32(*sendAmount), nodeID, *sendMine)
 	}
 
 	if startNodeCmd.Parsed() {

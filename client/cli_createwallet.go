@@ -3,11 +3,11 @@ package client
 import (
 	"fmt"
 
-	"github.com/xuelang-algo/blockchain_go"
+	"github.com/xuelang-algo/blockchain_go/services"
 )
 
 func (cli *CLI) createWallet(nodeID string) {
-	wallets, _ := main.NewWallets(nodeID)
+	wallets, _ := services.NewWallets(nodeID)
 	address := wallets.CreateWallet()
 	wallets.SaveToFile(nodeID)
 

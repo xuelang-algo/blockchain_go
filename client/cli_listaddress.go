@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/xuelang-algo/blockchain_go"
+	"github.com/xuelang-algo/blockchain_go/services"
 )
 
 func (cli *CLI) listAddresses(nodeID string) {
-	wallets, err := main.NewWallets(nodeID)
+	wallets, err := services.NewWallets(nodeID)
 	if err != nil {
 		log.Panic(err)
 	}

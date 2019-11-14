@@ -8,20 +8,37 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/boltdb/bolt"
-
-	"github.com/xuelang-algo/blockchain_go/protos"
 )
 
-const dbFile = "blockchain_%s.db"
+const dbFile = "blockchain_%s.DB"
 const blocksBucket = "blocks"
 const genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
 
 // Blockchain implements interactions with a DB
 type Blockchain struct {
 	tip []byte
-	db  *bolt.DB
+	DB  *bolt.DB
+}
+
+
+// NewBlock creates and returns Block
+func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int32) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height}
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
+	return block
+}
+
+// NewGenesisBlock creates and returns genesis Block
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0)
 }
 
 // CreateBlockchain creates a new blockchain DB
@@ -34,8 +51,8 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 
 	var tip []byte
 
-	cbtx := protos.NewCoinbaseTX(address, genesisCoinbaseData)
-	genesis := protos.NewGenesisBlock(cbtx)
+	cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
+	genesis := NewGenesisBlock(cbtx)
 
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
@@ -100,8 +117,8 @@ func NewBlockchain(nodeID string) *Blockchain {
 }
 
 // AddBlock saves the block into the blockchain
-func (bc *Blockchain) AddBlock(block *protos.Block) {
-	err := bc.db.Update(func(tx *bolt.Tx) error {
+func (bc *Blockchain) AddBlock(block *Block) {
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		blockInDb := b.Get(block.Hash)
 
@@ -117,7 +134,7 @@ func (bc *Blockchain) AddBlock(block *protos.Block) {
 
 		lastHash := b.Get([]byte("l"))
 		lastBlockData := b.Get(lastHash)
-		lastBlock := protos.DeserializeBlock(lastBlockData)
+		lastBlock := DeserializeBlock(lastBlockData)
 
 		if block.Height > lastBlock.Height {
 			err = b.Put([]byte("l"), block.Hash)
@@ -135,7 +152,7 @@ func (bc *Blockchain) AddBlock(block *protos.Block) {
 }
 
 // FindTransaction finds a transaction by its ID
-func (bc *Blockchain) FindTransaction(ID []byte) (protos.Transaction, error) {
+func (bc *Blockchain) FindTransaction(ID []byte) (Transaction, error) {
 	bci := bc.Iterator()
 
 	for {
@@ -152,13 +169,13 @@ func (bc *Blockchain) FindTransaction(ID []byte) (protos.Transaction, error) {
 		}
 	}
 
-	return protos.Transaction{}, errors.New("Transaction is not found")
+	return Transaction{}, errors.New("Transaction is not found")
 }
 
 // FindUTXO finds all unspent transaction outputs and returns transactions with spent outputs removed
-func (bc *Blockchain) FindUTXO() map[string]protos.TXOutputs {
-	UTXO := make(map[string]protos.TXOutputs)
-	spentTXOs := make(map[string][]int)
+func (bc *Blockchain) FindUTXO() map[string]TXOutputs {
+	UTXO := make(map[string]TXOutputs)
+	spentTXOs := make(map[string][]int32)
 	bci := bc.Iterator()
 
 	for {
@@ -172,7 +189,7 @@ func (bc *Blockchain) FindUTXO() map[string]protos.TXOutputs {
 				// Was the output spent?
 				if spentTXOs[txID] != nil {
 					for _, spentOutIdx := range spentTXOs[txID] {
-						if spentOutIdx == outIdx {
+						if spentOutIdx == int32(outIdx) {
 							continue Outputs
 						}
 					}
@@ -201,20 +218,20 @@ func (bc *Blockchain) FindUTXO() map[string]protos.TXOutputs {
 
 // Iterator returns a BlockchainIterat
 func (bc *Blockchain) Iterator() *BlockchainIterator {
-	bci := &BlockchainIterator{bc.tip, bc.db}
+	bci := &BlockchainIterator{bc.tip, bc.DB}
 
 	return bci
 }
 
 // GetBestHeight returns the height of the latest block
-func (bc *Blockchain) GetBestHeight() int {
-	var lastBlock protos.Block
+func (bc *Blockchain) GetBestHeight() int32 {
+	var lastBlock Block
 
-	err := bc.db.View(func(tx *bolt.Tx) error {
+	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastHash := b.Get([]byte("l"))
 		blockData := b.Get(lastHash)
-		lastBlock = *protos.DeserializeBlock(blockData)
+		lastBlock = *DeserializeBlock(blockData)
 
 		return nil
 	})
@@ -226,10 +243,10 @@ func (bc *Blockchain) GetBestHeight() int {
 }
 
 // GetBlock finds a block by its hash and returns it
-func (bc *Blockchain) GetBlock(blockHash []byte) (protos.Block, error) {
-	var block protos.Block
+func (bc *Blockchain) GetBlock(blockHash []byte) (Block, error) {
+	var block Block
 
-	err := bc.db.View(func(tx *bolt.Tx) error {
+	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 
 		blockData := b.Get(blockHash)
@@ -238,7 +255,7 @@ func (bc *Blockchain) GetBlock(blockHash []byte) (protos.Block, error) {
 			return errors.New("Block is not found.")
 		}
 
-		block = *protos.DeserializeBlock(blockData)
+		block = *DeserializeBlock(blockData)
 
 		return nil
 	})
@@ -268,9 +285,9 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 }
 
 // MineBlock mines a new block with the provided transactions
-func (bc *Blockchain) MineBlock(transactions []*protos.Transaction) *protos.Block {
+func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
-	var lastHeight int
+	var lastHeight int32
 
 	for _, tx := range transactions {
 		// TODO: ignore transaction if it's not valid
@@ -279,12 +296,12 @@ func (bc *Blockchain) MineBlock(transactions []*protos.Transaction) *protos.Bloc
 		}
 	}
 
-	err := bc.db.View(func(tx *bolt.Tx) error {
+	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastHash = b.Get([]byte("l"))
 
 		blockData := b.Get(lastHash)
-		block := protos.DeserializeBlock(blockData)
+		block := DeserializeBlock(blockData)
 
 		lastHeight = block.Height
 
@@ -294,9 +311,9 @@ func (bc *Blockchain) MineBlock(transactions []*protos.Transaction) *protos.Bloc
 		log.Panic(err)
 	}
 
-	newBlock := protos.NewBlock(transactions, lastHash, lastHeight+1)
+	newBlock := NewBlock(transactions, lastHash, lastHeight+1)
 
-	err = bc.db.Update(func(tx *bolt.Tx) error {
+	err = bc.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		err := b.Put(newBlock.Hash, newBlock.Serialize())
 		if err != nil {
@@ -320,8 +337,8 @@ func (bc *Blockchain) MineBlock(transactions []*protos.Transaction) *protos.Bloc
 }
 
 // SignTransaction signs inputs of a Transaction
-func (bc *Blockchain) SignTransaction(tx *protos.Transaction, privKey ecdsa.PrivateKey) {
-	prevTXs := make(map[string]protos.Transaction)
+func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
+	prevTXs := make(map[string]Transaction)
 
 	for _, vin := range tx.Vin {
 		prevTX, err := bc.FindTransaction(vin.Txid)
@@ -335,12 +352,12 @@ func (bc *Blockchain) SignTransaction(tx *protos.Transaction, privKey ecdsa.Priv
 }
 
 // VerifyTransaction verifies transaction input signatures
-func (bc *Blockchain) VerifyTransaction(tx *protos.Transaction) bool {
+func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
 	}
 
-	prevTXs := make(map[string]protos.Transaction)
+	prevTXs := make(map[string]Transaction)
 
 	for _, vin := range tx.Vin {
 		prevTX, err := bc.FindTransaction(vin.Txid)
