@@ -12,6 +12,10 @@ message Block {
   bytes data = 2;
   bytes prev_block_hash = 3;
   bytes hash = 4;
+
+//  step2 proofofwork添加
+  bytes nonce = 5;
+
 }
 
 message Blockchain {

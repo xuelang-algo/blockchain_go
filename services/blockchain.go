@@ -26,7 +26,7 @@ type Blockchain struct {
 
 // NewBlock creates and returns Block
 func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int32) *Block {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height}
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, []byte{}, height}
 	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
 
