@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/xuelang-algo/blockchain_go/utils"
 )
@@ -71,7 +72,6 @@ func (pow *ProofOfWork) Run() ([]byte, []byte) {
 			testNonce.Add(nonce, testNonce)
 			pool.Add(1)
 			go func(){
-
 				defer pool.Done()
 				var hashInt big.Int
 				var hash [32]byte
@@ -83,13 +83,14 @@ func (pow *ProofOfWork) Run() ([]byte, []byte) {
 				if hashInt.Cmp(pow.target) == -1 {
 					done = testNonce
 				}
-				//time.Sleep(1*time.Second)
+				time.Sleep(1*time.Second)
 			}()
 
 			nonce.Add(nonce, intOne)
 		}
-		pool.Wait()
+
 	}
+	pool.Wait()
 
 	data := pow.prepareData(done.Bytes())
 	hash = sha256.Sum256(data)

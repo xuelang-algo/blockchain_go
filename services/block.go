@@ -1,9 +1,9 @@
 package services
 
 import (
-	"bytes"
-	"encoding/gob"
 	"log"
+
+	"github.com/golang/protobuf/proto"
 
 	"github.com/xuelang-algo/blockchain_go/utils"
 )
@@ -32,24 +32,28 @@ func (b *Block) HashTransactions() []byte {
 }
 
 // Serialize serializes the block
+// use protobuf serialize function
 func (b *Block) Serialize() []byte {
-	var result bytes.Buffer
-	encoder := gob.NewEncoder(&result)
+	//var result bytes.Buffer
+	//encoder := gob.NewEncoder(&result)
+	//err := encoder.Encode(b)
+	result , err := proto.Marshal(b)
 
-	err := encoder.Encode(b)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	return result.Bytes()
+	//return result.Bytes()
+	return result
 }
 
 // DeserializeBlock deserializes a block
+// use protobuf unserialize function
 func DeserializeBlock(d []byte) *Block {
 	var block Block
-
-	decoder := gob.NewDecoder(bytes.NewReader(d))
-	err := decoder.Decode(&block)
+	//decoder := gob.NewDecoder(bytes.NewReader(d))
+	//err := decoder.Decode(&block)
+	err := proto.Unmarshal(d, &block)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -81,6 +81,7 @@ func (pow *ProofOfWork) Run() ([]byte, []byte) {
 
 	for done == nil {
 		for i := 0; i < threads; i++ {
+			//log.Println(nonce)
 			testNonce := new(big.Int)
 			testNonce.Add(nonce, testNonce)
 			pool.Add(1)
@@ -99,11 +100,10 @@ func (pow *ProofOfWork) Run() ([]byte, []byte) {
 				}
 				//time.Sleep(1*time.Second)
 			}()
-
 			nonce.Add(nonce, intOne)
 		}
-		pool.Wait()
 	}
+	pool.Wait()
 
 	data := pow.prepareData(done.Bytes())
 	hash = sha256.Sum256(data)
